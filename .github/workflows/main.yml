@@ -1,0 +1,52 @@
+name: Rust wasm compile
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup Perl environment
+      # You may pin to the exact commit or the version.
+      # uses: shogo82148/actions-setup-perl@04a9a397f834661fa6faf5aa6d16d14536249d2a
+      uses: shogo82148/actions-setup-perl@v1.22.0
+      with:
+        perl-version: 5.32.1
+    
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v3.7.0
+      with:
+        node-version: 18.15.0
+      
+    - name: Setup Rust
+      uses: ATiltedTree/setup-rust@v1.0.5
+      with:
+        rust-version: 1.69.0
+        
+    - uses: jetli/wasm-pack-action@v0.4.0
+      with:
+      # Optional version of wasm-pack to install(eg. 'v0.9.1', 'latest')
+        version: 'latest'
+      
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - run: npm ci
+    - run: npm run build
+    
+    - name: Deploy 
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: dist # The folder the action should deploy.
+    
+    
+      
+    
