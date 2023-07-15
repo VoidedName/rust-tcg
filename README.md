@@ -3,6 +3,8 @@ A flailing attempt at making a game!
 
 Based on my [vite+wasm](https://github.com/VoidedName/voideds-lazy-wasm-template/tree/main) template
 
+Hosted here [Flailing TCG](https://voidedname.github.io/rust-tcg/)
+
 ## How to install
 **!Important**: WASM-PACK (with default features) requires a perl installation.
 
