@@ -54,4 +54,5 @@ function wasmWatcher(): PluginOption {
 
 export default defineConfig({
     plugins: [wasmWatcher(), viteReact()],
+    base: "./"
 })
