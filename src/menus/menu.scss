@@ -1,0 +1,23 @@
+.menu {
+  list-style: none;
+  * {
+    color: cadetblue;
+  }
+
+  button {
+    pointer-events: none;
+    tab-index: -1;
+    border: none;
+    padding: unset;
+    background-color: unset;
+    transition: unset;
+  }
+
+  .selected {
+    color: chartreuse;
+  }
+
+  button[disabled] {
+    color: dimgray;
+  }
+}
