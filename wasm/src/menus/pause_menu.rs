@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{GameRunState, RunState, save_game};
+use crate::{delete_save_game, GameRunState, RunState, save_game};
 use crate::menus::main_menu::MainMenu;
 use crate::menus::MenuAction;
 
@@ -8,6 +8,7 @@ use crate::menus::MenuAction;
 pub enum PauseMenu {
     Continue,
     SaveAndQuit,
+    AbortRun,
 }
 
 impl Default for PauseMenu {
@@ -28,7 +29,8 @@ impl PauseMenu {
     fn on_next(self) -> Self {
         match self {
             PauseMenu::Continue => PauseMenu::SaveAndQuit,
-            PauseMenu::SaveAndQuit => PauseMenu::SaveAndQuit,
+            PauseMenu::SaveAndQuit => PauseMenu::AbortRun,
+            PauseMenu::AbortRun => PauseMenu::AbortRun,
         }
     }
 
@@ -36,15 +38,19 @@ impl PauseMenu {
         match self {
             PauseMenu::Continue => PauseMenu::Continue,
             PauseMenu::SaveAndQuit => PauseMenu::Continue,
+            PauseMenu::AbortRun => PauseMenu::SaveAndQuit,
         }
     }
 
     fn on_confirm(self, game_state: GameRunState) -> RunState {
         match self {
             PauseMenu::Continue => RunState::PlayingGame(game_state),
-            //TODO
             PauseMenu::SaveAndQuit => {
                 save_game(serde_json::to_string(&game_state).unwrap().as_str()).expect("Failed to save game");
+                RunState::Initializing
+            },
+            PauseMenu::AbortRun => {
+                delete_save_game().expect("Failed to delete game");
                 RunState::Initializing
             },
         }

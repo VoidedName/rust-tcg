@@ -21,6 +21,10 @@ let render_pause_menu = declare_foreign<(position: number) => MenuAction | undef
 
 let quit_application = declare_foreign<() => void>("quit_application")
 
+let delete_save_game = () => {
+    window.localStorage.clear();
+}
+
 let save_game = (state: string) => {
     window.localStorage.setItem("TCG Game", state)
 }
@@ -63,4 +67,5 @@ export {
     quit_application,
     save_game,
     get_save_game,
+    delete_save_game,
 }

@@ -234,6 +234,8 @@ extern "C" {
     fn save_game(data: &str) -> Result<(), JsValue>;
     #[wasm_bindgen(catch)]
     fn get_save_game() -> Result<Option<String>, JsValue>;
+    #[wasm_bindgen(catch)]
+    fn delete_save_game() -> Result<(), JsValue>;
 }
 
 #[wasm_bindgen]
