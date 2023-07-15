@@ -33,7 +33,8 @@ jobs:
       
     - name: Checkout
       uses: actions/checkout@v3
-      
+    
+    - run: npm ci
     - run: npm run build
     
     - name: Deploy 
