@@ -10,10 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [14.x, 16.x, 18.x]
-
     steps:
     - name: Setup Perl environment
       # You may pin to the exact commit or the version.
@@ -32,10 +28,10 @@ jobs:
       with:
         rust-version: 1.69.0
       
-    - run: echo npm --version
+    - run: npm --version
     
-    - run: echo perl --version
+    - run: perl --version
     
-    - run: echo rustup --version
+    - run: rustup --version
       
     
