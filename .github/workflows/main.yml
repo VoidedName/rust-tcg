@@ -30,6 +30,11 @@ jobs:
       uses: ATiltedTree/setup-rust@v1.0.5
       with:
         rust-version: 1.69.0
+        
+    - uses: jetli/wasm-pack-action@v0.4.0
+      with:
+      # Optional version of wasm-pack to install(eg. 'v0.9.1', 'latest')
+        version: 'latest'
       
     - name: Checkout
       uses: actions/checkout@v3
