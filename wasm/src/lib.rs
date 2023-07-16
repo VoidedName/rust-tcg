@@ -93,7 +93,9 @@ pub fn main_js() -> Result<(), JsValue> {
             }
 
             // just do nothing, loop will end on its own
-            RunState::Quitting => run_state.borrow().clone()
+            RunState::Quitting => {
+                panic!("We should never be able to enter this branch! Game loop should end this iteration");
+            }
         };
         *run_state.borrow_mut() = next_state;
 
