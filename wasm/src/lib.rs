@@ -1,8 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
+use rand::distributions::Uniform;
 use rand_xoshiro::Xoroshiro128PlusPlus;
 use serde::{Deserialize, Serialize};
+use strum::{EnumCount, FromRepr};
 use wasm_bindgen::prelude::*;
 use menus::{main_menu, MenuAction, settings_menu};
 use menus::pause_menu::PauseMenu;
@@ -117,8 +119,86 @@ pub enum RunState {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+pub struct GameLevel {
+    nodes: Vec<MapNode>,
+    edges: Vec<MapEdge>,
+    current: usize,
+}
+
+const MAX_LAYERS: usize = 9;
+const MIN_LAYERS: usize = 7;
+const MAX_NODES_IN_LAYER: usize = 4;
+const MIN_NODES_IN_LAYER: usize = 2;
+
+impl GameLevel {
+    pub fn new_from_random<R: Rng>(r: &mut R) -> Self {
+        type N = (usize, MapNode);
+        let mut edges = vec![];
+
+        let nr_layers = r.gen_range(MIN_LAYERS..=MAX_LAYERS);
+        let mut nodes: Vec<Vec<N>> = vec![vec![]; nr_layers];
+        nodes[0] = vec![(0, MapNode::Start)];
+        let mut id = 1;
+
+        for l in 1..nr_layers-1 {
+            let layer = &mut nodes[l];
+            let nr_nodes = r.gen_range(MIN_NODES_IN_LAYER..=MAX_NODES_IN_LAYER);
+            for _ in 0..nr_nodes {
+                // ignore first and last value in enum, as they are start and end
+                // and can not show up in inner layers
+                let t = (r.gen_range(0..MapNode::COUNT - 2) + 1) as u8;
+                let t = MapNode::from_repr(t).unwrap();
+                layer.push((id, t));
+                id += 1;
+            }
+        }
+
+        nodes[nr_layers - 1] = vec![(id, MapNode::End)];
+
+        for current in (1..nr_layers).rev() {
+            let previous = &nodes[current - 1];
+            let current = &nodes[current];
+
+            let mut current_node = 0;
+            let mut previous_node = 0;
+
+            loop {
+                edges.push(MapEdge(previous[previous_node].0, current[current_node].0));
+
+                let current_is_last = current_node == current.len() - 1;
+                let previous_is_last = previous_node == previous.len() - 1;
+
+                if current_is_last && previous_is_last {
+                    break;
+                } else if current_is_last {
+                    previous_node += 1;
+                } else if previous_is_last {
+                    current_node += 1;
+                } else {
+                    match r.sample(Uniform::new(0, 2)) {
+                        0 => { previous_node += 1 }
+                        1 => { current_node += 1 }
+                        _ => {
+                            previous_node += 1;
+                            current_node += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        Self {
+            nodes: nodes.iter().flatten().map(|x| x.1).collect(),
+            edges,
+            current: 0,
+        }
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct GameState {
     r: Xoroshiro128PlusPlus,
+    level: GameLevel,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
@@ -130,9 +210,16 @@ pub enum GameRunState {
     ShowingEncounter(Rc<RefCell<GameState>>, EncounterState),
 }
 
-#[wasm_bindgen]
-pub enum GameMapActions {
-    PauseGame,
+impl GameState {
+    fn new() -> Self {
+        let mut r = Xoroshiro128PlusPlus::from_entropy();
+        let level = GameLevel::new_from_random(&mut r);
+
+        Self {
+            r,
+            level,
+        }
+    }
 }
 
 #[wasm_bindgen(start)]
@@ -167,20 +254,20 @@ pub fn main_js() -> Result<(), JsValue> {
             RunState::Initializing => {
                 save_game = get_save_game().unwrap();
                 RunState::ShowingMainMenu(MainMenu::default())
-            },
+            }
 
             RunState::ShowingMainMenu(menu) => main_menu::handle_main_menu(*menu, save_game != None),
             RunState::ShowingSettingsMenu(menu) => settings_menu::handle_settings_menu(*menu),
 
             RunState::StartingNewGame => RunState::PlayingGame(
-                GameRunState::ShowingMap(Rc::new(RefCell::new(GameState { r: Xoroshiro128PlusPlus::from_entropy() })))
+                GameRunState::ShowingMap(Rc::new(RefCell::new(GameState::new())))
             ),
             RunState::LoadingSavedGame => {
                 match &save_game {
                     Some(data) => RunState::PlayingGame(serde_json::from_str(data.as_str()).unwrap()),
                     None => RunState::Initializing,
                 }
-            },
+            }
 
             RunState::PlayingGame(state) => {
                 match state {
@@ -195,7 +282,7 @@ pub fn main_js() -> Result<(), JsValue> {
         };
         *run_state.borrow_mut() = next_state;
 
-        web_sys::console::log_1(&format!("{:?}", run_state.borrow()).into());
+        // web_sys::console::log_1(&format!("{:?}", run_state.borrow()).into());
 
         if *run_state.borrow() == RunState::Quitting {
             quit_application().unwrap();
@@ -209,14 +296,55 @@ pub fn main_js() -> Result<(), JsValue> {
 }
 
 fn handle_game_map(state: GameRunState) -> RunState {
-    if let Ok(Some(action)) = render_game_map() {
-        match action {
-            GameMapActions::PauseGame => RunState::PausingGame(state, PauseMenu::default())
+    if let GameRunState::ShowingMap(map) = &state {
+        if let Ok(data) = render_game_map(
+            map.borrow().level.nodes.iter().map(|x| *x as u8).collect(),
+            map.borrow().level.edges.iter().map(serde_wasm_bindgen::to_value).map(Result::unwrap).collect(),
+            map.borrow().level.current,
+            vec![],
+        ) {
+            match serde_wasm_bindgen::from_value::<GameMapAction>(data).unwrap() {
+                GameMapAction::PauseGame => RunState::PausingGame(state.clone(), PauseMenu::default()),
+                _ => RunState::PlayingGame(state.clone()),
+            }
+        } else {
+            RunState::PlayingGame(state.clone())
         }
     } else {
-        RunState::PlayingGame(state)
+        RunState::PlayingGame(state.clone())
     }
 }
+
+#[derive(Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum GameMapAction {
+    Waiting,
+    PauseGame,
+    GoToNode(usize),
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+pub struct MapEdge(usize, usize);
+
+#[wasm_bindgen(typescript_custom_section)]
+const MAP_EDGE: &'static str = r#"
+export type MapEdge = [number, number];
+"#;
+
+#[wasm_bindgen]
+#[repr(u8)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize, EnumCount, FromRepr)]
+// START and END HAVE TO BE first and last member!
+pub enum MapNode {
+    Start,
+    Combat,
+    End,
+}
+
+//TODO: write macro to generate this automatically!
+#[wasm_bindgen(typescript_custom_section)]
+const GAME_MAP_ACTION: &'static str = r#"
+export type GameMapAction = "Waiting" | "PauseGame" | { GoToNode: number };
+"#;
 
 #[wasm_bindgen(raw_module = "../src/main")]
 extern "C" {
@@ -226,10 +354,17 @@ extern "C" {
     fn render_settings_menu(current: u8) -> Result<Option<MenuAction>, JsValue>;
     #[wasm_bindgen(catch)]
     fn render_pause_menu(current: u8) -> Result<Option<MenuAction>, JsValue>;
+
     #[wasm_bindgen(catch)]
-    fn render_game_map() -> Result<Option<GameMapActions>, JsValue>;
+    // Result = GameMapAction
+    // nodes = MapNode
+    // edges = MapEdge(idx, idx)
+    // visited = idx
+    fn render_game_map(nodes: Vec<u8>, edges: Vec<JsValue>, current: usize, visited: Vec<usize>) -> Result<JsValue, JsValue>;
+
     #[wasm_bindgen(catch)]
     fn quit_application() -> Result<(), JsValue>;
+
     #[wasm_bindgen(catch)]
     fn save_game(data: &str) -> Result<(), JsValue>;
     #[wasm_bindgen(catch)]

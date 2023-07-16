@@ -1,5 +1,7 @@
+import {MapEdge, MapNode} from "../../pkg";
+
 export type NativeObjectProps = { [key: string]: NativeProps }
-export type NativeProps = NativeObjectProps | NativeProps[] | number | string | boolean | ((..._: any[]) => any);
+export type NativeProps = NativeObjectProps | NativeProps[] | number | string | boolean | ((..._: any[]) => any) | MapEdge | MapNode;
 
 export function props_are_same(previous: NativeProps, now: NativeProps): boolean {
     if (previous === now) return true;

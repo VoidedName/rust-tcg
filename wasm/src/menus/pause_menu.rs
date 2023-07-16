@@ -1,6 +1,5 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{delete_save_game, GameRunState, RunState, save_game};
-use crate::menus::main_menu::MainMenu;
 use crate::menus::MenuAction;
 
 #[wasm_bindgen]
