@@ -32,6 +32,7 @@ function generate_layout(edges: [number, number][]): GraphLayout {
         edge_map[from].add(to);
     }
 
+    let max_in_layer = 0;
     const layers = [[0]];
 
     for (let layer of layers) {
@@ -50,10 +51,21 @@ function generate_layout(edges: [number, number][]): GraphLayout {
         if (next_layer.length > 0) {
             layers.push(next_layer)
         }
+        max_in_layer = Math.max(max_in_layer, next_layer.length)
     }
 
-    return Object.fromEntries(layers.flatMap((layer, x) => layer.map((node, y) =>
-        ([node, {x: x * 100 + 100, y: y * 100 + 100}]))))
+    const space = max_in_layer * 100;
+    return Object.fromEntries(layers.flatMap(
+        (layer, x) => {
+            const distance_between_nodes = space / layer.length;
+            const offset = distance_between_nodes / 2;
+            return layer.map(
+                (node, y) => {
+                    return ([node, {x: x * 100 + 100, y: y * distance_between_nodes + offset + 100}])
+                }
+            )
+        }
+    ))
 }
 
 export function MapView({consume_action, edges, nodes, visited, position}: GameMapProps) {
