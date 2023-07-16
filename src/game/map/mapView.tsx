@@ -81,14 +81,16 @@ export function MapView({consume_action, edges, nodes, visited, position}: GameM
 
     let layout = generate_layout(edges);
 
-    return <div className={"map"}><SimpleGraphRenderer
-        graph={{
-            nodes: nodes.map((x, id) => ({id, data: x})),
-            edges: edges.map(x => ({from: x[0], to: x[1]})),
-        }}
-        layout={layout}
-        label={(n) => "" + n.id}
-    /></div>
+    return <div className={"map"}>
+        <SimpleGraphRenderer
+            graph={{
+                nodes: nodes.map((x, id) => ({id, data: x})),
+                edges: edges.map(x => ({from: x[0], to: x[1]})),
+            }}
+            layout={layout}
+            label={(n) => `${n.id}:${n.data}`}
+        />
+    </div>
 }
 
 export const setup_map_view: ViewSetup<typeof render_game_map> = (setView) => (nodes, edges, position, visited) => {

@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{delete_save_game, GameRunState, RunState, save_game};
+use crate::{delete_save_game, RunState, save_game};
+use crate::game::GameRunState;
 use crate::menus::MenuAction;
 
 #[wasm_bindgen]
@@ -19,8 +20,8 @@ impl Default for PauseMenu {
 impl PauseMenu {
     pub fn on_action(self, action: MenuAction, game_state: GameRunState) -> RunState {
         match action {
-            MenuAction::Next => RunState::PausingGame(game_state, self.on_next()),
-            MenuAction::Previous => RunState::PausingGame(game_state, self.on_previous()),
+            MenuAction::Next => RunState::ShowingPauseMenu(game_state, self.on_next()),
+            MenuAction::Previous => RunState::ShowingPauseMenu(game_state, self.on_previous()),
             MenuAction::Confirm => self.on_confirm(game_state),
         }
     }
@@ -60,6 +61,6 @@ pub fn handle_pause_menu(current: PauseMenu, game_state: GameRunState) -> RunSta
     if let Ok(Some(action)) = crate::render_pause_menu(current as u8) {
         current.on_action(action, game_state)
     } else {
-        RunState::PausingGame(game_state, current)
+        RunState::ShowingPauseMenu(game_state, current)
     }
 }
