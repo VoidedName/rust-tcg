@@ -68,6 +68,8 @@ function generate_layout(edges: [number, number][]): GraphLayout {
     ))
 }
 
+const ICONS = ["./map/start.png", "./map/combat.png", "./map/boss.png"] as const;
+
 export function MapView({consume_action, edges, nodes, visited, position}: GameMapProps) {
     useEffect(() => {
         const l = (e: KeyboardEvent) => {
@@ -82,13 +84,13 @@ export function MapView({consume_action, edges, nodes, visited, position}: GameM
     let layout = generate_layout(edges);
 
     return <div className={"map"}>
-        <SimpleGraphRenderer
+        <SimpleGraphRenderer<MapNode>
             graph={{
                 nodes: nodes.map((x, id) => ({id, data: x})),
                 edges: edges.map(x => ({from: x[0], to: x[1]})),
             }}
             layout={layout}
-            label={(n) => `${n.id}:${n.data}`}
+            icon={x => ICONS[x.data]}
         />
     </div>
 }
