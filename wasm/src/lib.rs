@@ -253,7 +253,10 @@ pub fn main_js() -> Result<(), JsValue> {
         let next_state = match &*run_state.borrow() {
             RunState::Initializing => {
                 save_game = get_save_game().unwrap();
-                RunState::ShowingMainMenu(MainMenu::default())
+                match save_game {
+                    None => RunState::ShowingMainMenu(MainMenu::default()),
+                    Some(_) => RunState::ShowingMainMenu(MainMenu::Continue),
+                }
             }
 
             RunState::ShowingMainMenu(menu) => main_menu::handle_main_menu(*menu, save_game != None),

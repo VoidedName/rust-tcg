@@ -89,12 +89,6 @@ export function MapView({consume_action, edges, nodes, visited, position}: GameM
         layout={layout}
         label={(n) => "" + n.id}
     /></div>
-
-    // return <div className={"map"}>
-    //     {nodes.map((t, i) => <div className={"node"}>
-    //         <span className={"label"}>{i}:{t}</span>
-    //     </div>).reverse()}
-    // </div>
 }
 
 export const setup_map_view: ViewSetup<typeof render_game_map> = (setView) => (nodes, edges, position, visited) => {
