@@ -1,4 +1,4 @@
-import {GameMapAction, MapNode} from "../../../pkg"
+import {GameMapAction, MapEdges, MapNode} from "../../../pkg"
 import React, {FunctionComponent, useEffect} from "react";
 import {render_game_map, ViewSetup} from "../../main.tsx";
 import {props_are_same} from "../../utils/props_are_same.tsx";
@@ -14,7 +14,7 @@ function set_map_action(action: GameMapAction) {
 
 type GameMapProps = {
     nodes: MapNode[],
-    edges: [number, number][],
+    edges: MapEdges,
     position: number,
     visited: number[],
     consume_action: (action: GameMapAction) => void
@@ -23,15 +23,7 @@ const KeyToMainMenuAction = {
     "Escape": "PauseGame",
 } as const;
 
-function generate_layout(edges: [number, number][]): GraphLayout {
-    const edge_map: Record<number, Set<number>> = {};
-    for (let [from, to] of edges) {
-        if (edge_map[from] === undefined) {
-            edge_map[from] = new Set();
-        }
-        edge_map[from].add(to);
-    }
-
+function generate_layout(edge_map: MapEdges): GraphLayout {
     let max_in_layer = 0;
     const layers = [[0]];
 
@@ -39,8 +31,8 @@ function generate_layout(edges: [number, number][]): GraphLayout {
         let next_layer_seen = new Set();
         let next_layer = [];
         for (let node of layer) {
-            if (node in edge_map) {
-                for (let to of edge_map[node]) {
+            if (edge_map.has(node)) {
+                for (let to of edge_map.get(node)!) {
                     if (!next_layer_seen.has(to)) {
                         next_layer_seen.add(to)
                         next_layer.push(to)
@@ -49,10 +41,11 @@ function generate_layout(edges: [number, number][]): GraphLayout {
             }
         }
         if (next_layer.length > 0) {
-            layers.push(next_layer)
+            layers.push(next_layer.sort((a, b) => +a - +b))
         }
         max_in_layer = Math.max(max_in_layer, next_layer.length)
     }
+    console.log(layers)
 
     const space = max_in_layer * 100;
     return Object.fromEntries(layers.flatMap(
@@ -87,7 +80,7 @@ export function MapView({consume_action, edges, nodes, visited, position}: GameM
         <SimpleGraphRenderer<MapNode>
             graph={{
                 nodes: nodes.map((x, id) => ({id, data: x})),
-                edges: edges.map(x => ({from: x[0], to: x[1]})),
+                edges: [...edges.entries()].flatMap(([from, tos]) => [...tos].map(to => ({from: from, to}))),
             }}
             layout={layout}
             icon={x => ICONS[x.data]}

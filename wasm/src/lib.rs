@@ -124,9 +124,9 @@ extern "C" {
     #[wasm_bindgen(catch)]
     // Result = GameMapAction
     // nodes = MapNode
-    // edges = MapEdge(idx, idx)
+    // edges = Map<idx, idx>
     // visited = idx
-    fn render_game_map(nodes: Vec<u8>, edges: Vec<JsValue>, current: usize, visited: Vec<usize>) -> Result<JsValue, JsValue>;
+    fn render_game_map(nodes: Vec<u8>, edges: JsValue, current: usize, visited: Vec<usize>) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     fn quit_application() -> Result<(), JsValue>;

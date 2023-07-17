@@ -91,6 +91,7 @@ export default function SimpleGraphRenderer<TData, TGraph extends Graph<TData> =
                     y={l[node.id]!.y - circleRadius}
                     width={circleRadius * 2}
                     height={circleRadius * 2}
+                    id={`n${[node.id]}`}
                     href={icon(node)}>
                 </image>
             </g>

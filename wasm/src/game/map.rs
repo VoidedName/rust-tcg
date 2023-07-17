@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use wasm_bindgen::prelude::wasm_bindgen;
 use serde::{Deserialize, Serialize};
 use strum::{EnumCount, FromRepr};
@@ -12,12 +13,9 @@ const MIN_LAYERS: usize = 7;
 const MAX_NODES_IN_LAYER: usize = 4;
 const MIN_NODES_IN_LAYER: usize = 2;
 
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
-pub struct MapEdge(usize, usize);
-
 #[wasm_bindgen(typescript_custom_section)]
-const MAP_EDGE: &'static str = r#"
-export type MapEdge = [number, number];
+const MAP_EDGES: &'static str = r#"
+export type MapEdges = Map<number, number[]>;
 "#;
 
 #[wasm_bindgen]
@@ -39,14 +37,14 @@ export type GameMapAction = "Waiting" | "PauseGame" | { GoToNode: number };
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct GameLevel {
     pub nodes: Vec<MapNode>,
-    pub edges: Vec<MapEdge>,
+    pub edges: HashMap<usize, HashSet<usize>>,
     pub current: usize,
 }
 
 impl GameLevel {
     pub fn new_from_random<R: Rng>(r: &mut R) -> Self {
         type N = (usize, MapNode);
-        let mut edges = vec![];
+        let mut edges = HashMap::new();
 
         let nr_layers = r.gen_range(MIN_LAYERS..=MAX_LAYERS);
         let mut nodes: Vec<Vec<N>> = vec![vec![]; nr_layers];
@@ -76,7 +74,14 @@ impl GameLevel {
             let mut previous_node = 0;
 
             loop {
-                edges.push(MapEdge(previous[previous_node].0, current[current_node].0));
+                let edges = if let Some(edges) = edges.get_mut(&previous[previous_node].0) {
+                    edges
+                } else {
+                    edges.insert(previous[previous_node].0, HashSet::new());
+                    edges.get_mut(&previous[previous_node].0).unwrap()
+                };
+
+                edges.insert(current[current_node].0);
 
                 let current_is_last = current_node == current.len() - 1;
                 let previous_is_last = previous_node == previous.len() - 1;
@@ -119,7 +124,7 @@ pub fn handle_game_map(state: GameRunState) -> RunState {
     if let GameRunState::ShowingMap(map) = &state {
         if let Ok(data) = crate::render_game_map(
             map.borrow().level.nodes.iter().map(|x| *x as u8).collect(),
-            map.borrow().level.edges.iter().map(serde_wasm_bindgen::to_value).map(Result::unwrap).collect(),
+            serde_wasm_bindgen::to_value(&map.borrow().level.edges).unwrap(),
             map.borrow().level.current,
             vec![],
         ) {

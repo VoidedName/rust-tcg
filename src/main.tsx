@@ -2,7 +2,7 @@ import './style.css'
 import React, {FunctionComponent, useEffect, useState} from "react";
 import {setup_main_menu_view} from "./menus/mainMenuView.tsx";
 import {setup_settings_menu_view} from "./menus/settingsMenuView.tsx";
-import {MapEdge, MenuAction} from "../pkg";
+import {MapEdges, MenuAction} from "../pkg";
 import {NativeObjectProps} from "./utils/props_are_same.tsx";
 import {setup_pause_menu_view} from "./menus/pauseMenuView.tsx";
 import {setup_map_view} from "./game/map/mapView.tsx";
@@ -15,7 +15,7 @@ let render_main_menu = declare_foreign<(position: number, has_save_game: boolean
 
 let render_settings_menu = declare_foreign<(position: number) => MenuAction | undefined>("render_settings_menu")
 
-let render_game_map = declare_foreign<(nodes: Uint8Array[], edges: MapEdge[], current: number, visited: number[]) => void>("render_game_map")
+let render_game_map = declare_foreign<(nodes: Uint8Array[], edges: MapEdges, current: number, visited: number[]) => void>("render_game_map")
 
 let render_pause_menu = declare_foreign<(position: number) => MenuAction | undefined>("render_pause_menu")
 
