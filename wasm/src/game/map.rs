@@ -1,12 +1,12 @@
-use std::collections::{HashMap, HashSet};
-use wasm_bindgen::prelude::wasm_bindgen;
-use serde::{Deserialize, Serialize};
-use strum::{EnumCount, FromRepr};
-use rand::Rng;
-use rand::distributions::Uniform;
-use crate::RunState;
 use crate::game::GameRunState;
 use crate::menus::pause_menu::PauseMenu;
+use crate::RunState;
+use rand::distributions::Uniform;
+use rand::Rng;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
+use strum::{EnumCount, FromRepr};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 const MAX_LAYERS: usize = 9;
 const MIN_LAYERS: usize = 7;
@@ -39,6 +39,7 @@ pub struct GameLevel {
     pub nodes: Vec<MapNode>,
     pub edges: HashMap<usize, HashSet<usize>>,
     pub current: usize,
+    pub visited: HashSet<usize>,
 }
 
 impl GameLevel {
@@ -51,7 +52,7 @@ impl GameLevel {
         nodes[0] = vec![(0, MapNode::Start)];
         let mut id = 1;
 
-        for l in 1..nr_layers-1 {
+        for l in 1..nr_layers - 1 {
             let layer = &mut nodes[l];
             let nr_nodes = r.gen_range(MIN_NODES_IN_LAYER..=MAX_NODES_IN_LAYER);
             for _ in 0..nr_nodes {
@@ -94,8 +95,8 @@ impl GameLevel {
                     current_node += 1;
                 } else {
                     match r.sample(Uniform::new(0, 2)) {
-                        0 => { previous_node += 1 }
-                        1 => { current_node += 1 }
+                        0 => previous_node += 1,
+                        1 => current_node += 1,
                         _ => {
                             previous_node += 1;
                             current_node += 1;
@@ -109,6 +110,7 @@ impl GameLevel {
             nodes: nodes.iter().flatten().map(|x| x.1).collect(),
             edges,
             current: 0,
+            visited: HashSet::default(),
         }
     }
 }
@@ -120,17 +122,39 @@ pub enum GameMapAction {
     GoToNode(usize),
 }
 
-pub fn handle_game_map(state: GameRunState) -> RunState {
-    if let GameRunState::ShowingMap(map) = &state {
-        if let Ok(data) = crate::render_game_map(
+// TODO horribly inefficient
+pub fn handle_game_map(state: &mut GameRunState) -> RunState {
+    if let GameRunState::ShowingMap(map) = state {
+        let render_result = crate::render_game_map(
             map.borrow().level.nodes.iter().map(|x| *x as u8).collect(),
             serde_wasm_bindgen::to_value(&map.borrow().level.edges).unwrap(),
             map.borrow().level.current,
-            vec![],
-        ) {
+            map.borrow().level.visited.clone().into_iter().collect(),
+        );
+
+        if let Ok(data) = render_result {
             match serde_wasm_bindgen::from_value::<GameMapAction>(data).unwrap() {
-                GameMapAction::PauseGame => RunState::ShowingPauseMenu(state.clone(), PauseMenu::default()),
-                _ => RunState::PlayingGame(state.clone()),
+                GameMapAction::PauseGame => {
+                    RunState::ShowingPauseMenu(state.clone(), PauseMenu::default())
+                }
+                GameMapAction::GoToNode(node) => {
+                    let can_path = map
+                        .borrow()
+                        .level
+                        .edges
+                        .get(&map.borrow().level.current)
+                        .map_or(false, |x| x.contains(&node));
+                    if can_path {
+                        let mut mut_map = map.borrow_mut();
+                        let current = mut_map.level.current;
+                        mut_map.level.visited.insert(current);
+                        mut_map.level.current = node;
+                        RunState::PlayingGame(GameRunState::ShowingMap(map.clone()))
+                    } else {
+                        RunState::PlayingGame(state.clone())
+                    }
+                }
+                GameMapAction::Waiting => RunState::PlayingGame(state.clone()),
             }
         } else {
             RunState::PlayingGame(state.clone())

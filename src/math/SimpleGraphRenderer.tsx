@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {ReactNode} from 'react';
 import BaseGraphRenderer, {GraphLayout} from './BaseGraphRenderer';
 
 import {Vector} from './Vector';
@@ -49,6 +49,7 @@ export type SimpleGraphRendererProps<TData, TGraph extends Graph<TData>> = {
     graph: TGraph,
     icon: (node: Node<TData>) => string,
     layout: GraphLayout,
+    node_decorator?: (graph_node: Node<TData>, drawing_node: ReactNode) => ReactNode,
 };
 
 export default function SimpleGraphRenderer<TData, TGraph extends Graph<TData> = Graph<TData>>(
@@ -56,8 +57,10 @@ export default function SimpleGraphRenderer<TData, TGraph extends Graph<TData> =
         graph,
         layout,
         icon,
+        node_decorator: _node_decorator,
     }: SimpleGraphRendererProps<TData, TGraph>
 ) {
+    const node_decorator = _node_decorator ?? ((_, n) => n);
     const scale = 2;
     const lineWidth = scale;
     const circleRadius = nodeBaseRadius * scale;
@@ -79,7 +82,7 @@ export default function SimpleGraphRenderer<TData, TGraph extends Graph<TData> =
             )}
             graph={graph}
             layout={layout}
-            renderNode={(_, l, node: Node<TData>) => <g>
+            renderNode={(_, l, node: Node<TData>) => node_decorator(node,<g>
                 <circle
                     className="node"
                     r={circleRadius}
@@ -95,7 +98,7 @@ export default function SimpleGraphRenderer<TData, TGraph extends Graph<TData> =
                     href={icon(node)}>
                 </image>
             </g>
-            }
+            )}
             renderEdge={(_, l, edge) => {
                 const computedEdge = computeEdge(l[edge.from]!, l[edge.to]!, circleOffset, markerOffset);
                 if (!computedEdge) return null;

@@ -1,9 +1,9 @@
-use rand_xoshiro::Xoroshiro128PlusPlus;
-use rand::SeedableRng;
-use serde::{Deserialize, Serialize};
 use map::GameLevel;
-use std::rc::Rc;
+use rand::SeedableRng;
+use rand_xoshiro::Xoroshiro128PlusPlus;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
+use std::rc::Rc;
 
 pub mod map;
 
@@ -27,9 +27,6 @@ impl GameState {
         let mut r = Xoroshiro128PlusPlus::from_entropy();
         let level = GameLevel::new_from_random(&mut r);
 
-        Self {
-            r,
-            level,
-        }
+        Self { r, level }
     }
 }

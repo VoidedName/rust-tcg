@@ -11,6 +11,16 @@
     stroke: black;
   }
 
+  .current_map_node circle {
+    stroke: #646cff;
+    stroke-width: 4;
+    stroke-dasharray: 4;
+  }
+
+  .visited_map_node circle {
+    fill: burlywood;
+  }
+
   svg {
     position: fixed;
     top: 0;

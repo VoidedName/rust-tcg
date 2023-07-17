@@ -1,15 +1,15 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use wasm_bindgen::prelude::*;
-use game::{GameRunState, GameState, map};
-use menus::{main_menu, MenuAction, settings_menu};
-use menus::pause_menu::PauseMenu;
 use crate::menus::main_menu::MainMenu;
 use crate::menus::pause_menu;
 use crate::menus::settings_menu::SettingsMenu;
+use game::{map, GameRunState, GameState};
+use menus::pause_menu::PauseMenu;
+use menus::{main_menu, settings_menu, MenuAction};
+use std::cell::RefCell;
+use std::rc::Rc;
+use wasm_bindgen::prelude::*;
 
-mod menus;
 mod game;
+mod menus;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -62,7 +62,7 @@ pub fn main_js() -> Result<(), JsValue> {
         // GAME LOOP GOES HERE //
         /////////////////////////
 
-        let next_state = match &*run_state.borrow() {
+        let next_state = match &mut *run_state.borrow_mut() {
             RunState::Initializing => {
                 save_game = get_save_game().unwrap();
                 match save_game {
@@ -71,26 +71,26 @@ pub fn main_js() -> Result<(), JsValue> {
                 }
             }
 
-            RunState::ShowingMainMenu(menu) => main_menu::handle_main_menu(*menu, save_game != None),
+            RunState::ShowingMainMenu(menu) => {
+                main_menu::handle_main_menu(*menu, save_game != None)
+            }
             RunState::ShowingSettingsMenu(menu) => settings_menu::handle_settings_menu(*menu),
-            RunState::ShowingPauseMenu(from, menu) => pause_menu::handle_pause_menu(*menu, from.clone()),
-
-            RunState::StartingNewGame => RunState::PlayingGame(
-                GameRunState::ShowingMap(Rc::new(RefCell::new(GameState::new())))
-            ),
-            RunState::LoadingSavedGame => {
-                match &save_game {
-                    Some(data) => RunState::PlayingGame(serde_json::from_str(data.as_str()).unwrap()),
-                    None => RunState::Initializing,
-                }
+            RunState::ShowingPauseMenu(from, menu) => {
+                pause_menu::handle_pause_menu(*menu, from.clone())
             }
 
-            RunState::PlayingGame(state) => {
-                match state {
-                    GameRunState::ShowingMap(_) => map::handle_game_map(state.clone()),
-                    GameRunState::ShowingEncounter(_, _) => run_state.borrow().clone(),
-                }
-            }
+            RunState::StartingNewGame => RunState::PlayingGame(GameRunState::ShowingMap(Rc::new(
+                RefCell::new(GameState::new()),
+            ))),
+            RunState::LoadingSavedGame => match &save_game {
+                Some(data) => RunState::PlayingGame(serde_json::from_str(data.as_str()).unwrap()),
+                None => RunState::Initializing,
+            },
+
+            RunState::PlayingGame(state) => match state {
+                GameRunState::ShowingMap(_) => map::handle_game_map(state),
+                GameRunState::ShowingEncounter(_, _) => run_state.borrow().clone(),
+            },
 
             // just do nothing, loop will end on its own
             RunState::Quitting => {
@@ -104,11 +104,13 @@ pub fn main_js() -> Result<(), JsValue> {
         if *run_state.borrow() == RunState::Quitting {
             quit_application().unwrap();
         } else {
-            request_animation_frame(ticker.borrow().as_ref().unwrap()).expect("Failed to setup animation");
+            request_animation_frame(ticker.borrow().as_ref().unwrap())
+                .expect("Failed to setup animation");
         }
     }));
 
-    request_animation_frame(tmp_ticker.borrow().as_ref().unwrap()).expect("Failed to setup animation");
+    request_animation_frame(tmp_ticker.borrow().as_ref().unwrap())
+        .expect("Failed to setup animation");
     Ok(())
 }
 
@@ -126,7 +128,12 @@ extern "C" {
     // nodes = MapNode
     // edges = Map<idx, idx>
     // visited = idx
-    fn render_game_map(nodes: Vec<u8>, edges: JsValue, current: usize, visited: Vec<usize>) -> Result<JsValue, JsValue>;
+    fn render_game_map(
+        nodes: Vec<u8>,
+        edges: JsValue,
+        current: usize,
+        visited: Vec<usize>,
+    ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     fn quit_application() -> Result<(), JsValue>;
@@ -146,4 +153,3 @@ extern "C" {
     #[wasm_bindgen(catch, js_name = cancelAnimationFrame)]
     fn cancel_animation_frame(handle: i32) -> Result<(), JsValue>;
 }
-

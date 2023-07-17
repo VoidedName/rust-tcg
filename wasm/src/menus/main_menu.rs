@@ -1,7 +1,7 @@
-use wasm_bindgen::prelude::wasm_bindgen;
-use crate::RunState;
-use crate::menus::MenuAction;
 use crate::menus::settings_menu::SettingsMenu;
+use crate::menus::MenuAction;
+use crate::RunState;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -29,7 +29,13 @@ impl MainMenu {
 
     fn on_next(self, has_save_game: bool) -> MainMenu {
         match self {
-            MainMenu::Play => if has_save_game { MainMenu::Continue } else { MainMenu::Settings }
+            MainMenu::Play => {
+                if has_save_game {
+                    MainMenu::Continue
+                } else {
+                    MainMenu::Settings
+                }
+            }
             MainMenu::Continue => MainMenu::Settings,
             MainMenu::Settings => MainMenu::Quit,
             MainMenu::Quit => MainMenu::Quit,
@@ -40,7 +46,13 @@ impl MainMenu {
         match self {
             MainMenu::Play => MainMenu::Play,
             MainMenu::Continue => MainMenu::Play,
-            MainMenu::Settings => if has_save_game { MainMenu::Continue } else { MainMenu::Play },
+            MainMenu::Settings => {
+                if has_save_game {
+                    MainMenu::Continue
+                } else {
+                    MainMenu::Play
+                }
+            }
             MainMenu::Quit => MainMenu::Settings,
         }
     }

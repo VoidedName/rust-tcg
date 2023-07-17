@@ -5,6 +5,7 @@ import {props_are_same} from "../../utils/props_are_same.tsx";
 import "./mapView.scss"
 import SimpleGraphRenderer from "../../math/SimpleGraphRenderer.tsx";
 import {GraphLayout} from "../../math/BaseGraphRenderer.tsx";
+import {make_classes} from "../../utils/make_classes.tsx";
 
 let map_action: GameMapAction = "Waiting";
 
@@ -45,7 +46,6 @@ function generate_layout(edge_map: MapEdges): GraphLayout {
         }
         max_in_layer = Math.max(max_in_layer, next_layer.length)
     }
-    console.log(layers)
 
     const space = max_in_layer * 100;
     return Object.fromEntries(layers.flatMap(
@@ -82,6 +82,14 @@ export function MapView({consume_action, edges, nodes, visited, position}: GameM
                 nodes: nodes.map((x, id) => ({id, data: x})),
                 edges: [...edges.entries()].flatMap(([from, tos]) => [...tos].map(to => ({from: from, to}))),
             }}
+            node_decorator={(n, r) => <g
+                className={make_classes({
+                    "current_map_node": n.id === position,
+                    "visited_map_node": visited.includes(n.id),
+                })}
+                onClick={() => map_action = {GoToNode: n.id}}>
+                {r}
+            </g>}
             layout={layout}
             icon={x => ICONS[x.data]}
         />

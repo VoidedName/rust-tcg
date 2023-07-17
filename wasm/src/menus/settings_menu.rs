@@ -1,7 +1,7 @@
-use wasm_bindgen::prelude::wasm_bindgen;
-use crate::RunState;
 use crate::menus::main_menu::MainMenu;
 use crate::menus::MenuAction;
+use crate::RunState;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -34,7 +34,7 @@ impl SettingsMenu {
 
     fn on_confirm(self) -> RunState {
         match self {
-            SettingsMenu::Back => RunState::ShowingMainMenu(MainMenu::Settings)
+            SettingsMenu::Back => RunState::ShowingMainMenu(MainMenu::Settings),
         }
     }
 }
