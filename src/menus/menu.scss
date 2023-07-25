@@ -7,7 +7,7 @@
   }
 
   button {
-    pointer-events: none;
+    //pointer-events: none;
     tab-index: -1;
     border: none;
     padding: unset;
@@ -21,5 +21,6 @@
 
   button[disabled] {
     color: dimgray;
+    pointer-events: none;
   }
 }
